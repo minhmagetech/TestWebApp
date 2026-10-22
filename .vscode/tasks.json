@@ -1,0 +1,33 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Serve localhost",
+			"type": "shell",
+			"command": "python -m http.server 8000",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Start localhost server",
+			"type": "shell",
+			"command": "Start-Process python -ArgumentList '-m','http.server','8000' -WorkingDirectory 'C:\\Users\\Minh Nguyen\\Documents\\_GitRepo\\TestWebApp' -WindowStyle Hidden",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Serve static site detached",
+			"type": "shell",
+			"command": "cmd /c start \"TestWebApp Server\" /b py -m http.server 8000",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Serve web app",
+			"type": "shell",
+			"command": "npx --yes http-server . -p 8000",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}
