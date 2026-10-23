@@ -43,8 +43,11 @@
     var count = 0;
     var normalFrameDelay = 4;
     var speedBoostUntil = 0;
+    var cheatUntil = 0;
     var lastArrowKey = null;
     var lastArrowTap = 0;
+    var konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'Return', 'Escape'];
+    var konamiIndex = 0;
 
     var snake = {
       x: 160,
@@ -77,7 +80,9 @@
 
       // Slow the game loop to 15 fps instead of 60 (60/15 = 4).
       // During a double-tap boost, update twice as often for a short time.
-      var frameDelay = Date.now() < speedBoostUntil ? normalFrameDelay / 2 : normalFrameDelay;
+      var now = Date.now();
+      var cheatActive = now < cheatUntil;
+      var frameDelay = cheatActive ? 1 : (now < speedBoostUntil ? normalFrameDelay / 2 : normalFrameDelay);
       if (++count < frameDelay) {
         return;
       }
@@ -118,8 +123,11 @@
       context.fillRect(apple.x, apple.y, grid - 1, grid - 1);
 
       // draw snake one cell at a time
-      context.fillStyle = 'green';
       snake.cells.forEach(function (cell, index) {
+
+        context.fillStyle = cheatActive
+          ? 'hsl(' + ((now / 4 + index * 35) % 360) + ', 100%, 50%)'
+          : 'green';
 
         // drawing 1 px smaller than the grid creates a grid effect in the snake body so you can see how long it is
         context.fillRect(cell.x, cell.y, grid - 1, grid - 1);
@@ -134,7 +142,8 @@
         }
 
         // check collision with all cells after this one (modified bubble sort)
-        for (var i = index + 1; i < snake.cells.length; i++) {
+        // The Konami mode makes the snake invulnerable for its duration.
+        for (var i = index + 1; !cheatActive && i < snake.cells.length; i++) {
 
           // snake occupies same space as a body part. reset game
           if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
@@ -173,6 +182,19 @@
 
     // listen to keyboard events to move the snake
     document.addEventListener('keydown', function (e) {
+      var konamiKey = e.key === 'Enter' ? 'Return' : e.key;
+
+      if (konamiKey === konamiSequence[konamiIndex]) {
+        konamiIndex++;
+        if (konamiIndex === konamiSequence.length) {
+          cheatUntil = Date.now() + 30000;
+          konamiIndex = 0;
+        }
+      }
+      else {
+        konamiIndex = konamiKey === konamiSequence[0] ? 1 : 0;
+      }
+
       var key = e.which || ({
         ArrowLeft: 37,
         ArrowUp: 38,
