@@ -28,11 +28,48 @@
       border: 1px solid white;
     }
 
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 48px);
+      grid-template-rows: repeat(2, 48px);
+      gap: 4px;
+    }
+
+    .dpad button {
+      color: white;
+      background: #222;
+      border: 1px solid #888;
+      border-radius: 6px;
+      font-size: 22px;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    .dpad button.selected {
+      background: #2f7d32;
+    }
+
+    .dpad button:focus-visible {
+      outline: 3px solid #fff;
+      outline-offset: 2px;
+    }
+
+    .dpad-up { grid-column: 2; }
+    .dpad-left { grid-column: 1; grid-row: 2; }
+    .dpad-down { grid-column: 2; grid-row: 2; }
+    .dpad-right { grid-column: 3; grid-row: 2; }
+
   </style>
 </head>
 
 <body>
   <canvas width="400" height="400" id="game"></canvas>
+  <div class="dpad" aria-label="Snake controls">
+    <button class="dpad-up" data-direction="up" aria-label="Move up" aria-pressed="false">▲</button>
+    <button class="dpad-left" data-direction="left" aria-label="Move left" aria-pressed="false">◀</button>
+    <button class="dpad-down" data-direction="down" aria-label="Move down" aria-pressed="false">▼</button>
+    <button class="dpad-right selected" data-direction="right" aria-label="Move right" aria-pressed="true">▶</button>
+  </div>
   <script>
     var canvas = document.getElementById('game');
     var context = canvas.getContext('2d');
@@ -48,6 +85,25 @@
     var lastArrowTap = 0;
     var konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'Return', 'Escape'];
     var konamiIndex = 0;
+    var dpadButtons = Array.from(document.querySelectorAll('.dpad button'));
+
+    function syncDpadSelection(direction, focusButton) {
+      dpadButtons.forEach(function (button) {
+        var selected = button.dataset.direction === direction;
+        button.classList.toggle('selected', selected);
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        if (selected && focusButton) {
+          button.focus({preventScroll: true});
+        }
+      });
+    }
+
+    function focusDpadDirection(direction) {
+      var button = document.querySelector('.dpad button[data-direction="' + direction + '"]');
+      if (button) {
+        button.focus({preventScroll: true});
+      }
+    }
 
     var snake = {
       x: 160,
@@ -165,20 +221,46 @@
       if (direction === 'left' && snake.dx === 0) {
         snake.dx = -grid;
         snake.dy = 0;
+        syncDpadSelection(direction, false);
       }
       else if (direction === 'up' && snake.dy === 0) {
         snake.dy = -grid;
         snake.dx = 0;
+        syncDpadSelection(direction, false);
       }
       else if (direction === 'right' && snake.dx === 0) {
         snake.dx = grid;
         snake.dy = 0;
+        syncDpadSelection(direction, false);
       }
       else if (direction === 'down' && snake.dy === 0) {
         snake.dy = grid;
         snake.dx = 0;
+        syncDpadSelection(direction, false);
       }
     }
+
+    dpadButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        setDirection(button.dataset.direction);
+        syncDpadSelection(button.dataset.direction, true);
+      });
+
+      button.addEventListener('keydown', function (e) {
+        var nextDirection = ({
+          ArrowUp: 'up',
+          ArrowDown: 'down',
+          ArrowLeft: 'left',
+          ArrowRight: 'right'
+        })[e.key];
+
+        if (nextDirection) {
+          e.preventDefault();
+          e.stopPropagation();
+          focusDpadDirection(nextDirection);
+        }
+      });
+    });
 
     // listen to keyboard events to move the snake
     document.addEventListener('keydown', function (e) {
