@@ -4,7 +4,7 @@
 <head>
   <title>Basic Snake HTML Game</title>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="viewport" content="width=600, height=600, initial-scale=1">
   <meta name="description" content="Description of your web app">
   <meta name="mrbd-web-app-capable" content="yes">
   <meta charset="UTF-8">
@@ -18,6 +18,8 @@
     body {
       background: black;
       display: flex;
+      flex-direction: column;
+      gap: 12px;
       align-items: center;
       justify-content: center;
     }
@@ -25,6 +27,7 @@
     canvas {
       border: 1px solid white;
     }
+
   </style>
 </head>
 
@@ -38,6 +41,10 @@
     // (e.g. 16 * 25 = 400)
     var grid = 16;
     var count = 0;
+    var normalFrameDelay = 4;
+    var speedBoostUntil = 0;
+    var lastArrowKey = null;
+    var lastArrowTap = 0;
 
     var snake = {
       x: 160,
@@ -68,8 +75,10 @@
     function loop() {
       requestAnimationFrame(loop);
 
-      // slow game loop to 15 fps instead of 60 (60/15 = 4)
-      if (++count < 4) {
+      // Slow the game loop to 15 fps instead of 60 (60/15 = 4).
+      // During a double-tap boost, update twice as often for a short time.
+      var frameDelay = Date.now() < speedBoostUntil ? normalFrameDelay / 2 : normalFrameDelay;
+      if (++count < frameDelay) {
         return;
       }
 
@@ -143,32 +152,78 @@
       });
     }
 
+    function setDirection(direction) {
+      if (direction === 'left' && snake.dx === 0) {
+        snake.dx = -grid;
+        snake.dy = 0;
+      }
+      else if (direction === 'up' && snake.dy === 0) {
+        snake.dy = -grid;
+        snake.dx = 0;
+      }
+      else if (direction === 'right' && snake.dx === 0) {
+        snake.dx = grid;
+        snake.dy = 0;
+      }
+      else if (direction === 'down' && snake.dy === 0) {
+        snake.dy = grid;
+        snake.dx = 0;
+      }
+    }
+
     // listen to keyboard events to move the snake
     document.addEventListener('keydown', function (e) {
+      var key = e.which || ({
+        ArrowLeft: 37,
+        ArrowUp: 38,
+        ArrowRight: 39,
+        ArrowDown: 40
+      })[e.key];
+
+      // Pressing the arrow matching the current movement direction twice
+      // within 300 ms briefly doubles speed.
+      if (key >= 37 && key <= 40) {
+        var now = Date.now();
+        var matchesMovement =
+          (key === 37 && snake.dx < 0) ||
+          (key === 38 && snake.dy < 0) ||
+          (key === 39 && snake.dx > 0) ||
+          (key === 40 && snake.dy > 0);
+
+        if (matchesMovement && key === lastArrowKey && now - lastArrowTap <= 300) {
+            speedBoostUntil = now + 1200;
+            lastArrowKey = null;
+        }
+        else if (matchesMovement) {
+          lastArrowKey = key;
+          lastArrowTap = now;
+        }
+        else {
+          lastArrowKey = null;
+          lastArrowTap = 0;
+        }
+      }
+
       // prevent snake from backtracking on itself by checking that it's
       // not already moving on the same axis (pressing left while moving
       // left won't do anything, and pressing right while moving left
       // shouldn't let you collide with your own body)
 
       // left arrow key
-      if (e.which === 37 && snake.dx === 0) {
-        snake.dx = -grid;
-        snake.dy = 0;
+      if (key === 37) {
+        setDirection('left');
       }
       // up arrow key
-      else if (e.which === 38 && snake.dy === 0) {
-        snake.dy = -grid;
-        snake.dx = 0;
+      else if (key === 38) {
+        setDirection('up');
       }
       // right arrow key
-      else if (e.which === 39 && snake.dx === 0) {
-        snake.dx = grid;
-        snake.dy = 0;
+      else if (key === 39) {
+        setDirection('right');
       }
       // down arrow key
-      else if (e.which === 40 && snake.dy === 0) {
-        snake.dy = grid;
-        snake.dx = 0;
+      else if (key === 40) {
+        setDirection('down');
       }
     });
 
